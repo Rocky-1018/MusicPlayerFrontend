@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
+import { View, TextInput, Button, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,6 +38,14 @@ export default function LoginScreen() {
         style={styles.input}
       />
       <Button title="Login" onPress={onLogin} />
+
+      {/* Sign Up Button */}
+      <TouchableOpacity
+        style={styles.signupButton}
+        onPress={() => navigation.navigate('Signup')} // Ensure this matches your Signup screen name in navigator
+      >
+        <Text style={styles.signupButtonText}>Don't have an account? Sign Up</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -46,5 +54,7 @@ const styles = StyleSheet.create({
   container: { flex:1, justifyContent:'center', padding:20, backgroundColor: '#121212' },
   title: { fontSize: 26, marginBottom: 20, color:'#1DB954', fontWeight:'bold', textAlign:'center' },
   input: { backgroundColor:'#222', color:'#eee', marginBottom:15, padding:12, borderRadius:8 },
-  error: { color:'red', marginBottom:12, textAlign:'center' }
+  error: { color:'red', marginBottom:12, textAlign:'center' },
+  signupButton: { marginTop: 20, alignItems: 'center' },
+  signupButtonText: { color: '#1DB954', fontSize: 16 },
 });

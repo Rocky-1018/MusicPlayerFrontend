@@ -2,12 +2,16 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
-import api from '../api';
+import api, { API_BASE_URL } from '../api';
 import { usePlayback } from '../contexts/PlaybackContext';
 import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import GestureRecognizer from 'react-native-swipe-gestures';
+
+const STATIC_BASE_URL = API_BASE_URL;
 
 export default function NowPlayingScreen({ route }) {
-  const { trackId } = route.params;
+  const { trackId } = route.params || {};
   const navigation = useNavigation();
 
   const {
@@ -20,32 +24,59 @@ export default function NowPlayingScreen({ route }) {
     previousTrack,
     volume,
     setVolume,
-    sound, // Received from PlaybackContext as a ref
+    sound,
   } = usePlayback();
 
   const [track, setTrack] = useState(null);
-  const [position, setPosition] = useState(0); // in milliseconds
-  const [duration, setDuration] = useState(0); // in milliseconds
-  const isSeekingRef = useRef(false); // Track if user is currently scrubbing
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const isSeekingRef = useRef(false);
 
+  // Fetch and play track
   useEffect(() => {
-    api
-      .get(`/music/${trackId}`)
-      .then((res) => setTrack(res.data))
-      .catch(console.error);
+    if (!trackId) return;
+
+    const loadTrack = async () => {
+      try {
+        const res = await api.get(`/music/${trackId}`);
+        setTrack(res.data);
+
+        // Play only if it's not already the same track
+        if (!currentTrack || currentTrack._id !== trackId) {
+          playTrack(res.data);
+        }
+      } catch (err) {
+        console.error('Error fetching track:', err);
+      }
+    };
+
+    loadTrack();
   }, [trackId]);
 
+  // Keep UI updated with current track
   useEffect(() => {
-    if (track) playTrack(track);
-  }, [track]);
+    if (currentTrack) {
+      setTrack(currentTrack);
+    }
+  }, [currentTrack]);
 
+  // Handle playback updates
   useEffect(() => {
     if (!sound?.current) return;
 
     const onPlaybackStatusUpdate = (status) => {
-      if (status.isLoaded && !isSeekingRef.current) {
-        setPosition(status.positionMillis);
+      if (!status.isLoaded) return;
+
+      if (!isSeekingRef.current) {
+        setPosition(status.positionMillis || 0);
         setDuration(status.durationMillis || 0);
+      }
+
+      // Ensure play/pause button always reflects real state
+      if (status.isPlaying !== isPlaying) {
+        setTimeout(() => {
+          // Small delay ensures state sync before UI updates
+        }, 50);
       }
 
       if (status.didJustFinish) {
@@ -54,16 +85,11 @@ export default function NowPlayingScreen({ route }) {
     };
 
     sound.current.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
-
     return () => {
-      // Unsubscribe listener
-      if (sound.current) sound.current.setOnPlaybackStatusUpdate(null);
+      sound.current.setOnPlaybackStatusUpdate(null);
     };
-  }, [sound, nextTrack]);
+  }, [sound, nextTrack, isPlaying]);
 
-  if (!track) return <Text style={styles.loading}>Loading...</Text>;
-
-  // Format milliseconds to mm:ss
   const formatTime = (ms) => {
     if (!ms) return '0:00';
     const totalSeconds = Math.floor(ms / 1000);
@@ -73,146 +99,178 @@ export default function NowPlayingScreen({ route }) {
   };
 
   const onSeekSliderValueChange = (value) => {
-    // User started seeking
     isSeekingRef.current = true;
     setPosition(value);
   };
 
   const onSeekSliderComplete = async (value) => {
-    // User finished seeking
-    isSeekingRef.current = false;
     if (sound.current) {
       await sound.current.setPositionAsync(value);
     }
+    isSeekingRef.current = false;
   };
 
+  if (!track) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <Text style={styles.loading}>Loading...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      {/* Back Button */}
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-        <Ionicons name="arrow-back" size={28} color="#1DB954" />
-      </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#121212' }}>
+      <View style={styles.container}>
+        {/* Back Button */}
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={28} color="#1DB954" />
+        </TouchableOpacity>
 
-      {/* Cover Art */}
-      {track.coverArt && (
-        <Image
-          source={{ uri: `http://localhost:5000/uploads/covers/${track.coverArt}` }}
-          style={styles.coverImage}
-          resizeMode="cover"
-        />
-      )}
+        {/* Album Art with swipe gesture */}
+        <GestureRecognizer
+          onSwipeLeft={() => nextTrack()}
+          onSwipeRight={() => previousTrack()}
+          config={{
+            velocityThreshold: 0.3,
+            directionalOffsetThreshold: 80,
+          }}
+          style={{ flex: 1 }}
+        >
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              if (isPlaying) {
+                pauseTrack();
+              } else {
+                resumeTrack();
+              }
+            }}
+          >
+            {track.coverArt ? (
+              <Image
+                source={{
+                  uri: track.coverArt.startsWith('http')
+                    ? track.coverArt
+                    : `${STATIC_BASE_URL}/uploads/covers/${track.coverArt}`,
+                }}
+                style={styles.coverImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.coverPlaceholder} />
+            )}
+          </TouchableOpacity>
+        </GestureRecognizer>
 
-      {/* Title & Artist */}
-      <Text style={styles.title}>{track.title}</Text>
-      <Text style={styles.artist}>{track.artist}</Text>
+        {/* Track Info */}
+        <Text style={styles.title} numberOfLines={1}>
+          {track.title}
+        </Text>
+        <Text style={styles.artist} numberOfLines={1}>
+          {track.artist || 'Unknown Artist'}
+        </Text>
 
-      {/* Playback Slider & Time */}
-      <View style={styles.sliderRow}>
-        <Text style={styles.timeText}>{formatTime(position)}</Text>
+        {/* Progress Bar */}
+        <View style={styles.sliderRow}>
+          <Text style={styles.timeText}>{formatTime(position)}</Text>
+          <Slider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={duration}
+            value={position}
+            minimumTrackTintColor="#1DB954"
+            maximumTrackTintColor="#555"
+            thumbTintColor="#1DB954"
+            onValueChange={onSeekSliderValueChange}
+            onSlidingComplete={onSeekSliderComplete}
+          />
+          <Text style={styles.timeText}>{formatTime(duration)}</Text>
+        </View>
+
+        {/* Controls */}
+        <View style={styles.controlsRow}>
+          <TouchableOpacity onPress={previousTrack}>
+            <Ionicons name="play-skip-back" size={36} color="#1DB954" />
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={isPlaying ? pauseTrack : resumeTrack} style={styles.playPauseButton}>
+            <Ionicons
+              name={isPlaying ? 'pause-circle' : 'play-circle'}
+              size={70}
+              color="#1DB954"
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={nextTrack}>
+            <Ionicons name="play-skip-forward" size={36} color="#1DB954" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Volume Control */}
+        <Text style={styles.volumeLabel}>Volume</Text>
         <Slider
-          style={styles.slider}
+          style={styles.volumeSlider}
           minimumValue={0}
-          maximumValue={duration}
-          value={position}
+          maximumValue={1}
+          value={volume}
           minimumTrackTintColor="#1DB954"
           maximumTrackTintColor="#555"
           thumbTintColor="#1DB954"
-          onValueChange={onSeekSliderValueChange}
-          onSlidingComplete={onSeekSliderComplete}
+          onValueChange={setVolume}
         />
-        <Text style={styles.timeText}>{formatTime(duration)}</Text>
       </View>
-
-      {/* Playback Controls */}
-      <View style={styles.controlsRow}>
-        <TouchableOpacity onPress={previousTrack} style={styles.controlButton}>
-          <Ionicons name="play-skip-back" size={36} color="#1DB954" />
-        </TouchableOpacity>
-
-        {isPlaying ? (
-          <TouchableOpacity onPress={pauseTrack} style={styles.controlButton}>
-            <Ionicons name="pause-circle" size={64} color="#1DB954" />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity onPress={resumeTrack} style={styles.controlButton}>
-            <Ionicons name="play-circle" size={64} color="#1DB954" />
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity onPress={nextTrack} style={styles.controlButton}>
-          <Ionicons name="play-skip-forward" size={36} color="#1DB954" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Volume Slider */}
-      <Text style={styles.volumeLabel}>Volume</Text>
-      <Slider
-      
-  style={[styles.slider, { width: 250 }]} // or flex: 1, depending on layout
-  minimumValue={0}
-  maximumValue={1}
-  value={volume}
-  minimumTrackTintColor="#1DB954"
-  maximumTrackTintColor="#555"
-  thumbTintColor="#1DB954"
-  onValueChange={setVolume}
-/>
-
-
-    </View>
+    </SafeAreaView>
   );
 }
+
+const commonCoverStyle = {
+  width: 350,
+  height: 350,
+  borderRadius: 20,
+  backgroundColor: '#333',
+  marginBottom: 5,
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#121212', alignItems: 'center' },
   backButton: { alignSelf: 'flex-start', marginBottom: 10 },
-  coverImage: {
-    width: 250,
-    height: 250,
-    borderRadius: 8,
-    marginBottom: 20,
-    backgroundColor: '#333',
-  },
+  coverImage: { ...commonCoverStyle },
+  coverPlaceholder: { ...commonCoverStyle },
   title: {
     fontSize: 24,
-    color: '#1DB954',
+    color: '#fff',
     fontWeight: 'bold',
     marginBottom: 8,
     textAlign: 'center',
   },
   artist: {
     fontSize: 18,
-    color: '#ccc',
+    color: '#aaa',
     marginBottom: 20,
     textAlign: 'center',
   },
-  loading: { marginTop: 100, color: 'white', fontSize: 16, textAlign: 'center' },
-
   sliderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
     marginBottom: 20,
+    paddingHorizontal: 10,
   },
-  slider: {
-    flex: 1,
-    marginHorizontal: 10,
-  },
-  timeText: {
-    width: 40,
-    color: '#ccc',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-
+  slider: { flex: 1 },
+  timeText: { width: 40, color: '#ccc', fontSize: 12, textAlign: 'center' },
   controlsRow: {
     flexDirection: 'row',
     width: '80%',
     justifyContent: 'space-around',
-    marginTop: 20,
     alignItems: 'center',
+    marginTop: 15,
   },
-  controlButton: { paddingHorizontal: 10 },
-
-  volumeLabel: { marginTop: 30, fontSize: 16, color: '#ccc', textAlign: 'center' },
+  playPauseButton: { paddingHorizontal: 15 },
+  volumeLabel: { marginTop: 25, fontSize: 16, color: '#ccc', textAlign: 'center' },
+  volumeSlider: {
+    width: 250,
+    alignSelf: 'center',
+  },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' },
+  loading: { color: '#fff', fontSize: 16 },
 });

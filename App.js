@@ -1,13 +1,16 @@
 import React from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PlaybackProvider } from './contexts/PlaybackContext';
 
 import LoginScreen from './screens/LoginScreen';
+import SignupScreen from './screens/SignupScreen'; 
 import MusicListScreen from './screens/MusicListScreen';
 import NowPlayingScreen from './screens/NowPlayingScreen';
 import PlaylistScreen from './screens/PlaylistScreen';
@@ -16,7 +19,6 @@ import SettingsScreen from './screens/SettingsScreen';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Stack navigator for the Music section (to allow navigation from MusicList to NowPlaying)
 function MusicStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -26,22 +28,20 @@ function MusicStack() {
   );
 }
 
-// Main app navigator with auth check
 function AppNavigator() {
   const { userToken } = useAuth();
 
   if (!userToken) {
-    // If not logged in, show only LoginScreen in stack
     return (
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Signup" component={SignupScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     );
   }
 
-  // Authenticated user: show bottom tabs
   return (
     <NavigationContainer>
       <Tab.Navigator
@@ -69,10 +69,14 @@ function AppNavigator() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <PlaybackProvider>
-        <AppNavigator />
-      </PlaybackProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <PlaybackProvider>
+            <AppNavigator />
+          </PlaybackProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

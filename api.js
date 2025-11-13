@@ -1,13 +1,13 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'http://localhost:5000/api'; // Update with your backend URL
+export const API_BASE_URL = 'https://musicplayerbackend-production.up.railway.app';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: `${API_BASE_URL}/api`,
 });
 
-api.interceptors.request.use(async config => {
+api.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem('userToken');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;

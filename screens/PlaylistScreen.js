@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import api from '../api';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
 export default function PlaylistScreen() {
   const [playlists, setPlaylists] = useState([]);
 
@@ -12,6 +12,7 @@ export default function PlaylistScreen() {
   }, []);
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#121212' }}>
     <View style={styles.container}>
       <Text style={styles.header}>Your Playlists</Text>
       <FlatList
@@ -25,6 +26,7 @@ export default function PlaylistScreen() {
         )}
       />
     </View>
+    </SafeAreaView>
   );
 }
 
