@@ -30,7 +30,7 @@ export default function NowPlayingScreen({ route }) {
     toggleLike,
   } = usePlayback();
 
-  // ✅ MOUSE GESTURES - Works globally!
+
   const { onMouseDown, onMouseUp, onMouseLeave } = useMouseGestures();
 
   const [track, setTrack] = useState(null);
@@ -39,7 +39,7 @@ export default function NowPlayingScreen({ route }) {
   const [isLiked, setIsLiked] = useState(false);
   const isSeekingRef = useRef(false);
 
-  // ✅ FIXED: Load track details - corrected endpoint
+
   useEffect(() => {
     if (!trackId) return;
 
@@ -60,22 +60,22 @@ export default function NowPlayingScreen({ route }) {
     loadTrack();
   }, [trackId]);
 
-  // Update track if currentTrack changes
+
   useEffect(() => {
     if (currentTrack) {
       setTrack(currentTrack);
-      // Reset progress when track changes
+     
       setPosition(0);
       setDuration(0);
     }
   }, [currentTrack]);
 
-  // Update like state when likedMusic changes
+
   useEffect(() => {
     if (track) setIsLiked(likedMusic.includes(track._id));
   }, [likedMusic, track]);
 
-  // ✅ FIXED: Playback status listener - depends on sound AND currentTrack
+
   useEffect(() => {
     if (!sound?.current) return;
 
@@ -139,7 +139,7 @@ export default function NowPlayingScreen({ route }) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#121212' }}>
-      {/* 🖱️ MOUSE GESTURE ZONE */}
+
       <View 
         style={{ flex: 1 }} 
         onMouseDown={onMouseDown}
@@ -148,12 +148,12 @@ export default function NowPlayingScreen({ route }) {
       >
         <View style={styles.container}>
 
-          {/* Back Button */}
+
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={28} color="#1DB954" />
           </TouchableOpacity>
 
-          {/* Album Art with swipe gestures */}
+ 
           <GestureRecognizer
             onSwipeLeft={nextTrack}
             onSwipeRight={previousTrack}
@@ -180,13 +180,12 @@ export default function NowPlayingScreen({ route }) {
             </TouchableOpacity>
           </GestureRecognizer>
 
-          {/* ✅ FIXED: Track Info - No overlap */}
+ 
           <View style={styles.trackInfoContainer}>
             <Text style={styles.title} numberOfLines={1}>{track.title}</Text>
             <Text style={styles.artist} numberOfLines={1}>{track.artist || 'Unknown Artist'}</Text>
           </View>
 
-          {/* ✅ FIXED Progress Bar - Cross-platform */}
           <View style={styles.sliderRow}>
             <Text style={styles.timeText}>{formatTime(position)}</Text>
             
@@ -224,7 +223,7 @@ export default function NowPlayingScreen({ route }) {
             </TouchableOpacity>
           </View>
 
-          {/* ✅ FIXED: Volume + Like Row - Side by side */}
+        
           <View style={styles.volumeLikeRow}>
             <View style={styles.volumeWrapper}>
               <Text style={styles.volumeLabel}>Volume</Text>
@@ -311,7 +310,7 @@ timeText: {
   },
   playPauseButton: { paddingHorizontal: 15 },
   
-  // ✅ FIXED: Volume + Like row - side by side
+ 
   volumeLikeRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',

@@ -34,16 +34,16 @@ const ProfileCard = ({
         return;
       }
 
-      // Fix for deprecated MediaType usage:
+    
       const mediaTypes = ImagePicker.MediaType
-        ? ImagePicker.MediaType.image  // lowercase 'image' for new API
-        : ImagePicker.MediaTypeOptions.Images; // fallback older API
+        ? ImagePicker.MediaType.image  
+        : ImagePicker.MediaTypeOptions.Images; 
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes,
         allowsEditing: true,
         quality: 0.8,
-        aspect: [1, 1], // square crop
+        aspect: [1, 1], 
       });
 
       if (result.canceled) return;
@@ -51,7 +51,7 @@ const ProfileCard = ({
       const asset = result.assets[0];
       const uri = asset.uri;
       const filename = asset.fileName || `profile-${Date.now()}.jpg`;
-      // More reliable MIME type fallback:
+    
       const mimeType = asset.mimeType || (asset.type === 'image' ? 'image/jpeg' : asset.type) || 'image/jpeg';
 
       await uploadProfilePicture(uri, filename, mimeType);
@@ -66,12 +66,12 @@ const ProfileCard = ({
       let fileData;
 
       if (Platform.OS === 'web') {
-        // Web: convert blob URL to File object
+       
         const response = await fetch(uri);
         const blob = await response.blob();
         fileData = new File([blob], filename, { type: mimeType });
       } else {
-        // Native: fix iOS file URI and prepare file object
+  
         let uploadUri = uri;
         if (Platform.OS === 'ios' && uri.startsWith('file://')) {
           uploadUri = uri.replace('file://', '');
@@ -85,10 +85,10 @@ const ProfileCard = ({
       console.log('📤 Sending:', { filename, mimeType, platform: Platform.OS });
 
       const response = await fetch(`${API_BASE_URL}/api/auth/me/profile-picture`, {
-        method: 'PUT', // matches your backend route
+        method: 'PUT', 
         headers: {
           Authorization: `Bearer ${userToken}`,
-          // Do NOT set Content-Type header; fetch sets multipart boundary automatically
+          
         },
         body: formData,
       });

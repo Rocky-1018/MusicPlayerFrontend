@@ -18,10 +18,10 @@ export function MouseGestureProvider({ children }) {
   const clickCountRef = useRef(0);
   const isMouseDownRef = useRef(false);
 
-  const LONG_PRESS_DELAY = 600; // ms
-  const DOUBLE_CLICK_WINDOW = 300; // ms
+  const LONG_PRESS_DELAY = 600; 
+  const DOUBLE_CLICK_WINDOW = 300; 
 
-  // Only enable on web/desktop platforms
+  
   const isMouseSupported = Platform.OS === 'web';
 
   const handleMouseDown = useCallback(() => {
@@ -29,7 +29,7 @@ export function MouseGestureProvider({ children }) {
     
     isMouseDownRef.current = true;
     
-    // Start long press timer
+    
     longPressTimerRef.current = setTimeout(() => {
       if (isMouseDownRef.current) {
         previousTrack();
@@ -45,15 +45,15 @@ export function MouseGestureProvider({ children }) {
     if (!isMouseDownRef.current) return;
     isMouseDownRef.current = false;
 
-    // Cancel long press if mouse released early
+   
     clearTimeout(longPressTimerRef.current);
 
     clickCountRef.current += 1;
 
     if (clickCountRef.current === 1) {
-      // Potential single click - wait for double click window
+      
       clickTimerRef.current = setTimeout(() => {
-        // Single click confirmed: Play/Pause
+        
         if (isPlaying) {
           pauseTrack();
           console.log('🖱️ GLOBAL Mouse: Pause');

@@ -7,7 +7,7 @@ const STATIC_BASE_URL = API_BASE_URL;
 const PlaybackContext = createContext();
 
 export function PlaybackProvider({ children }) {
-  const { userToken } = useAuth(); // ✅ get token here
+  const { userToken } = useAuth(); 
   const [playlist, setPlaylist] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -15,14 +15,10 @@ export function PlaybackProvider({ children }) {
   const [volume, setVolume] = useState(0.5);
   const [isLoadingSound, setIsLoadingSound] = useState(false);
   const [isLoadingPlaylist, setIsLoadingPlaylist] = useState(false);
-  const [likedMusic, setLikedMusic] = useState([]); // ✅ liked songs state
+  const [likedMusic, setLikedMusic] = useState([]); 
 
   const sound = useRef(new Audio.Sound());
-
-  // -------------------
-  // Helper functions
-  // -------------------
-  const unloadSoundSafely = useCallback(async () => {
+ const unloadSoundSafely = useCallback(async () => {
     try {
       const status = await sound.current.getStatusAsync();
       if (status.isLoaded) {
@@ -51,9 +47,7 @@ export function PlaybackProvider({ children }) {
     setVolume(clamped);
   }, []);
 
-  // -------------------
-  // Playlist functions
-  // -------------------
+
   const refreshPlaylist = async () => {
     if (isLoadingPlaylist) return;
     setIsLoadingPlaylist(true);
@@ -87,7 +81,7 @@ export function PlaybackProvider({ children }) {
     const isCurrentlyLiked = likedMusic.includes(trackId);
     const newLikeStatus = !isCurrentlyLiked;
 
-    // Optimistic UI update
+
     setLikedMusic(prev =>
       newLikeStatus ? [...prev, trackId] : prev.filter(id => id !== trackId)
     );
@@ -104,16 +98,13 @@ export function PlaybackProvider({ children }) {
       }
     } catch (err) {
       console.error('Failed to toggle like', err);
-      // Revert on error
+ 
       setLikedMusic(prev =>
         isCurrentlyLiked ? [...prev, trackId] : prev.filter(id => id !== trackId)
       );
     }
   };
 
-  // -------------------
-  // Playback functions
-  // -------------------
   const playTrackAtIndex = async (index, tracks) => {
     if (isLoadingSound) return;
     if (index < 0 || index >= tracks.length) return;
@@ -167,9 +158,7 @@ export function PlaybackProvider({ children }) {
     if (currentIndex - 1 >= 0) playTrackAtIndex(currentIndex - 1, playlist);
   };
 
-  // -------------------
-  // Effects
-  // -------------------
+
   useEffect(() => { refreshPlaylist(); }, [userToken]);
   useEffect(() => { fetchLikedMusic(); }, [userToken]);
   useEffect(() => { return () => { unloadSoundSafely(); }; }, [unloadSoundSafely]);
@@ -183,7 +172,7 @@ export function PlaybackProvider({ children }) {
     setVolumeEffect();
   }, [volume]);
 
-  // ✅ NEW: Stop music on logout (when userToken becomes null)
+
   useEffect(() => {
     if (!userToken && sound.current) {
       unloadSoundSafely();

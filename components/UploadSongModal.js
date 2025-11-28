@@ -79,7 +79,7 @@ function UploadSongModal({ isVisible, onClose, userToken }) {
 
   const pickFile = async (type) => {
     try {
-      // 🌐 WEB SUPPORT: Use HTML file input
+      
       if (Platform.OS === 'web') {
         return new Promise((resolve, reject) => {
           const input = document.createElement('input');
@@ -94,7 +94,7 @@ function UploadSongModal({ isVisible, onClose, userToken }) {
               return;
             }
 
-            // Validate audio file types on web
+            
             if (type === 'audio') {
               const allowedTypes = [
                 'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/aac', 
@@ -125,7 +125,7 @@ function UploadSongModal({ isVisible, onClose, userToken }) {
           input.click();
         });
       } 
-      // 📱 MOBILE SUPPORT: Native pickers
+      
       else {
         if (type === 'coverArt') {
           const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -180,12 +180,12 @@ function UploadSongModal({ isVisible, onClose, userToken }) {
   const createFormFile = (asset) => {
     if (!asset) return null;
 
-    // 🌐 WEB: Use native File object directly
+   
     if (Platform.OS === 'web' && asset.file instanceof File) {
       return asset.file;
     }
 
-    // 📱 MOBILE: Use {uri, name, type} format
+   
     const uri = asset.uri;
     const name = asset.name || uri.split('/').pop();
     const type = asset.mimeType || 'application/octet-stream';
@@ -206,7 +206,7 @@ function UploadSongModal({ isVisible, onClose, userToken }) {
     setIsUploading(true);
 
     try {
-      // Prepare files (web files don't need copying)
+      
       const preparedAudio = Platform.OS === 'web' ? audioAsset : await copyToCacheIfNeeded(audioAsset);
       const preparedCover = Platform.OS === 'web' ? coverAsset : await copyToCacheIfNeeded(coverAsset);
 

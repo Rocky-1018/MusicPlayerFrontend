@@ -91,7 +91,7 @@ export function HandGestureProvider({ children }) {
   const gestureHistoryRef = useRef([]);
   let WebcamComponent = null;
 
-  // Dynamic webcam import for web
+  
   const [Webcam, setWebcam] = useState(null);
   
   useEffect(() => {
@@ -102,7 +102,7 @@ export function HandGestureProvider({ children }) {
     }
   }, []);
 
-  // Load model and permissions
+  
   useEffect(() => {
     if (!isVisible) return;
 
@@ -196,12 +196,11 @@ export function HandGestureProvider({ children }) {
     }
   }, []);
 
-  // Detection loops (web/mobile) - simplified for context
+ 
   useEffect(() => {
     if (!isVisible || !handLandmarker) return;
     
-    // Add your detection loops here (webcam/mobile camera)
-    // This is simplified - full implementation in modal render
+
   }, [isVisible, handLandmarker]);
 
   const value = {
@@ -211,7 +210,7 @@ export function HandGestureProvider({ children }) {
     HandGestureModal: ({ callbacks }) => (
       <Modal visible={isVisible} animationType="slide" onRequestClose={value.hideGestures}>
         <View style={styles.container}>
-          {/* Full camera/canvas implementation here */}
+         
           <View style={styles.statusContainer}>
             <Text style={styles.statusText}>{statusText}</Text>
             <Text style={styles.statusText}>Action: {currentAction}</Text>

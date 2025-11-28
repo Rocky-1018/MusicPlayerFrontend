@@ -42,7 +42,7 @@ export default function LoginScreen({ navigation }) {
       {/* Sign Up Button */}
       <TouchableOpacity
         style={styles.signupButton}
-        onPress={() => navigation.navigate('Signup')} // Ensure this matches your Signup screen name in navigator
+        onPress={() => navigation.navigate('Signup')} 
       >
         <Text style={styles.signupButtonText}>Don't have an account? Sign Up</Text>
       </TouchableOpacity>
