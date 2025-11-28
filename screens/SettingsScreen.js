@@ -112,17 +112,17 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to log out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: logout },
-      ],
-      { cancelable: true }
-    );
-  };
+  // const handleLogout = () => {
+  //   Alert.alert(
+  //     'Logout',
+  //     'Are you sure you want to log out?',
+  //     [
+  //       { text: 'Cancel', style: 'cancel' },
+  //       { text: 'Logout', style: 'destructive', onPress: logout },
+  //     ],
+  //     { cancelable: true }
+  //   );
+  // };
 
   if (loadingProfile) {
     return (
@@ -176,7 +176,7 @@ export default function SettingsScreen() {
             <Text style={styles.buttonText}>Add Song</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
+          <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={logout}>
             <MaterialIcons name="logout" size={20} color="#FFFFFF" style={styles.buttonIcon} />
             <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>Log Out</Text>
           </TouchableOpacity>
@@ -241,7 +241,6 @@ export default function SettingsScreen() {
           isVisible={songModalVisible}
           onClose={() => setSongModalVisible(false)}
           userToken={userToken}
-          // onSongUploaded={refreshPlaylist}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>

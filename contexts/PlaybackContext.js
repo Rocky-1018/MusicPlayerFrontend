@@ -183,6 +183,16 @@ export function PlaybackProvider({ children }) {
     setVolumeEffect();
   }, [volume]);
 
+  // ✅ NEW: Stop music on logout (when userToken becomes null)
+  useEffect(() => {
+    if (!userToken && sound.current) {
+      unloadSoundSafely();
+      setCurrentTrack(null);
+      setIsPlaying(false);
+      setCurrentIndex(-1);
+    }
+  }, [userToken, unloadSoundSafely]);
+
   return (
     <PlaybackContext.Provider
       value={{
@@ -201,9 +211,9 @@ export function PlaybackProvider({ children }) {
         sound,
         isLoadingPlaylist,
         isLoadingSound,
-        likedMusic,      // ✅ Shared liked music
-        toggleLike,      // ✅ Toggle like/unlike
-        fetchLikedMusic, // ✅ Fetch liked songs
+        likedMusic,     
+        toggleLike,     
+        fetchLikedMusic, 
       }}
     >
       {children}

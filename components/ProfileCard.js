@@ -9,10 +9,11 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import api, { API_BASE_URL } from '../api';
+import { API_BASE_URL } from '../api';
 
 const ProfileCard = ({
   username,
@@ -33,22 +34,27 @@ const ProfileCard = ({
         return;
       }
 
-      const modern = ImagePicker.MediaType || null;
+      // Fix for deprecated MediaType usage:
+      const mediaTypes = ImagePicker.MediaType
+        ? ImagePicker.MediaType.image  // lowercase 'image' for new API
+        : ImagePicker.MediaTypeOptions.Images; // fallback older API
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: modern ? [modern.Image] : ImagePicker.MediaTypeOptions.Images,
+        mediaTypes,
         allowsEditing: true,
-        quality: 1,
+        quality: 0.8,
+        aspect: [1, 1], // square crop
       });
 
       if (result.canceled) return;
 
       const asset = result.assets[0];
       const uri = asset.uri;
-      const name = asset.fileName || uri.split('/').pop();
-      const mimeType = asset.mimeType || 'image/jpeg';
+      const filename = asset.fileName || `profile-${Date.now()}.jpg`;
+      // More reliable MIME type fallback:
+      const mimeType = asset.mimeType || (asset.type === 'image' ? 'image/jpeg' : asset.type) || 'image/jpeg';
 
-      await uploadProfilePicture(uri, name, mimeType);
+      await uploadProfilePicture(uri, filename, mimeType);
     } catch (err) {
       console.log('Image pick error:', err);
       Alert.alert('Error', 'Image selection failed');
@@ -57,30 +63,49 @@ const ProfileCard = ({
 
   const uploadProfilePicture = async (uri, filename, mimeType) => {
     try {
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      let fileData;
 
-      const fileExt = filename ? filename.split('.').pop() : 'jpg';
-      const guessedMime = mimeType || `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`;
+      if (Platform.OS === 'web') {
+        // Web: convert blob URL to File object
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        fileData = new File([blob], filename, { type: mimeType });
+      } else {
+        // Native: fix iOS file URI and prepare file object
+        let uploadUri = uri;
+        if (Platform.OS === 'ios' && uri.startsWith('file://')) {
+          uploadUri = uri.replace('file://', '');
+        }
+        fileData = { uri: uploadUri, name: filename, type: mimeType };
+      }
 
       const formData = new FormData();
-      formData.append('profilePicture', blob, filename || `profile.${fileExt}`);
+      formData.append('profilePicture', fileData);
 
-      const res = await api.put('/auth/me/profile-picture', formData, {
+      console.log('📤 Sending:', { filename, mimeType, platform: Platform.OS });
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/me/profile-picture`, {
+        method: 'PUT', // matches your backend route
         headers: {
           Authorization: `Bearer ${userToken}`,
+          // Do NOT set Content-Type header; fetch sets multipart boundary automatically
         },
+        body: formData,
       });
 
-      if (res.data?.profilePicture) {
-        const newUri = `${API_BASE_URL}${res.data.profilePicture}?timestamp=${Date.now()}`;
+      const data = await response.json();
+      console.log('📥 Response:', data);
+
+      if (response.ok && data.profilePicture) {
+        const newUri = `${API_BASE_URL}${data.profilePicture}?t=${Date.now()}`;
         setProfilePictureUri(newUri);
-        Alert.alert('Success', 'Profile picture updated');
+        Alert.alert('Success', 'Profile picture updated successfully!');
+      } else {
+        throw new Error(data.message || `Upload failed: ${response.status}`);
       }
     } catch (err) {
-      console.log(err.response?.data || err.message);
-      const msg = err.response?.data?.message || 'Failed to upload profile picture';
-      Alert.alert('Error', msg);
+      console.error('UPLOAD ERROR:', err);
+      Alert.alert('Upload Error', err.message || 'Failed to upload profile picture');
     }
   };
 
@@ -154,6 +179,7 @@ const styles = StyleSheet.create({
   profileImageContainer: {
     alignSelf: 'center',
     marginBottom: 20,
+    position: 'relative',
   },
   profileImage: {
     width: 120,
