@@ -29,7 +29,9 @@ export default function MusicListScreen({ navigation }) {
     setPlaylist,
     nextTrack,
     previousTrack,
-  } = usePlayback();
+    likedMusic,
+    toggleLike,
+  } = usePlayback(); // ✅ get likedMusic and toggleLike
 
   const [music, setMusic] = useState([]);
   const [filteredMusic, setFilteredMusic] = useState([]);
@@ -70,88 +72,102 @@ export default function MusicListScreen({ navigation }) {
     );
   }
 
-return (
-  <SafeAreaView style={{ flex: 1, backgroundColor: '#121212' }}>
-    <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Filter by artist"
-          value={artistFilter}
-          onChangeText={setArtistFilter}
-          autoCapitalize="words"
-          clearButtonMode="while-editing"
-        />
-        <TouchableOpacity onPress={logout} style={styles.logoutButton}>
-          <Ionicons name="log-out-outline" size={24} color="#d9534f" />
+  const renderItem = ({ item }) => {
+    const isLiked = likedMusic.includes(item._id);
+
+    return (
+      <View style={styles.itemRow}>
+        <TouchableOpacity style={styles.item} onPress={() => handleSongPress(item)}>
+          {item.coverArt ? (
+            <Image
+              source={{ uri: `${STATIC_BASE_URL}/uploads/covers/${item.coverArt}` }}
+              style={styles.coverImageSmall}
+            />
+          ) : (
+            <View style={styles.coverPlaceholder} />
+          )}
+          <View style={styles.infoContainer}>
+            <Text style={styles.title}>{item.title}</Text>
+            <Text style={styles.artist}>{item.artist}</Text>
+          </View>
+        </TouchableOpacity>
+        {/* Like button */}
+        <TouchableOpacity onPress={() => toggleLike(item._id)} style={styles.likeButton}>
+          <Ionicons
+            name={isLiked ? 'heart' : 'heart-outline'}
+            size={24}
+            color={isLiked ? '#1DB954' : '#ccc'}
+          />
         </TouchableOpacity>
       </View>
+    );
+  };
 
-      <FlatList
-        data={filteredMusic}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.item} onPress={() => handleSongPress(item)}>
-            {item.coverArt ? (
-              <Image
-                source={{ uri: `${STATIC_BASE_URL}/uploads/covers/${item.coverArt}` }}
-                style={styles.coverImageSmall}
-              />
-            ) : (
-              <View style={styles.coverPlaceholder} />
-            )}
-            <View style={styles.infoContainer}>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.artist}>{item.artist}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-      />
-    </View>
-
-    {currentTrack && (
-      <Pressable
-        onPress={() => navigation.navigate('NowPlaying', { trackId: currentTrack._id })}
-        style={styles.nowPlayingBar}
-      >
-        {currentTrack.coverArt ? (
-          <Image
-            source={{ uri: `${STATIC_BASE_URL}/uploads/covers/${currentTrack.coverArt}` }}
-            style={styles.coverImageNowPlaying}
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#121212' }}>
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Filter by artist"
+            value={artistFilter}
+            onChangeText={setArtistFilter}
+            autoCapitalize="words"
+            clearButtonMode="while-editing"
           />
-        ) : (
-          <View style={styles.coverPlaceholderNowPlaying} />
-        )}
-        <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={styles.nowPlayingTitle} numberOfLines={1}>
-            {currentTrack.title}
-          </Text>
-          <Text style={styles.nowPlayingArtist} numberOfLines={1}>
-            {currentTrack.artist}
-          </Text>
+          <TouchableOpacity onPress={logout} style={styles.logoutButton}>
+            <Ionicons name="log-out-outline" size={24} color="#d9534f" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={previousTrack} style={styles.iconButton}>
-          <Ionicons name="play-skip-back" size={32} color="#1DB954" />
-        </TouchableOpacity>
-        {isPlaying ? (
-          <TouchableOpacity onPress={pauseTrack} style={styles.iconButton}>
-            <Ionicons name="pause-circle" size={48} color="#1DB954" />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity onPress={resumeTrack} style={styles.iconButton}>
-            <Ionicons name="play-circle" size={48} color="#1DB954" />
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity onPress={nextTrack} style={styles.iconButton}>
-          <Ionicons name="play-skip-forward" size={32} color="#1DB954" />
-        </TouchableOpacity>
-      </Pressable>
-    )}
-  </SafeAreaView>
-);
 
+        <FlatList
+          data={filteredMusic}
+          keyExtractor={(item) => item._id}
+          renderItem={renderItem}
+        />
+      </View>
+
+      {currentTrack && (
+        <Pressable
+          onPress={() => navigation.navigate('NowPlaying', { trackId: currentTrack._id })}
+          style={styles.nowPlayingBar}
+        >
+          {currentTrack.coverArt ? (
+            <Image
+              source={{ uri: `${STATIC_BASE_URL}/uploads/covers/${currentTrack.coverArt}` }}
+              style={styles.coverImageNowPlaying}
+            />
+          ) : (
+            <View style={styles.coverPlaceholderNowPlaying} />
+          )}
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.nowPlayingTitle} numberOfLines={1}>
+              {currentTrack.title}
+            </Text>
+            <Text style={styles.nowPlayingArtist} numberOfLines={1}>
+              {currentTrack.artist}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={previousTrack} style={styles.iconButton}>
+            <Ionicons name="play-skip-back" size={32} color="#1DB954" />
+          </TouchableOpacity>
+          {isPlaying ? (
+            <TouchableOpacity onPress={pauseTrack} style={styles.iconButton}>
+              <Ionicons name="pause-circle" size={48} color="#1DB954" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={resumeTrack} style={styles.iconButton}>
+              <Ionicons name="play-circle" size={48} color="#1DB954" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={nextTrack} style={styles.iconButton}>
+            <Ionicons name="play-skip-forward" size={32} color="#1DB954" />
+          </TouchableOpacity>
+        </Pressable>
+      )}
+    </SafeAreaView>
+  );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -178,12 +194,18 @@ const styles = StyleSheet.create({
   logoutButton: {
     padding: 6,
   },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomColor: '#333',
+    borderBottomWidth: 1,
+  },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
     paddingVertical: 12,
-    borderBottomColor: '#333',
-    borderBottomWidth: 1,
   },
   coverImageSmall: {
     width: 50,
@@ -209,6 +231,10 @@ const styles = StyleSheet.create({
   artist: {
     color: '#ccc',
     fontSize: 13,
+  },
+  likeButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 12,
   },
   nowPlayingBar: {
     position: 'absolute',
@@ -246,11 +272,4 @@ const styles = StyleSheet.create({
   iconButton: {
     marginHorizontal: 10,
   },
-  controlsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    flex: 1,
-  },
 });
-
-

@@ -13,7 +13,7 @@ import LoginScreen from './screens/LoginScreen';
 import SignupScreen from './screens/SignupScreen'; 
 import MusicListScreen from './screens/MusicListScreen';
 import NowPlayingScreen from './screens/NowPlayingScreen';
-import PlaylistScreen from './screens/PlaylistScreen';
+import PlaylistScreen from './screens/PlaylistScreen'; // Will show as "Favourites"
 import SettingsScreen from './screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
@@ -53,14 +53,14 @@ function AppNavigator() {
           tabBarIcon: ({ focused, color, size }) => {
             let iconName;
             if (route.name === 'Home') iconName = focused ? 'musical-notes' : 'musical-notes-outline';
-            else if (route.name === 'Playlists') iconName = focused ? 'list' : 'list-outline';
+            else if (route.name === 'Favourites') iconName = focused ? 'heart' : 'heart-outline';
             else if (route.name === 'Settings') iconName = focused ? 'settings' : 'settings-outline';
             return <Ionicons name={iconName} size={size} color={color} />;
           },
         })}
       >
         <Tab.Screen name="Home" component={MusicStack} />
-        <Tab.Screen name="Playlists" component={PlaylistScreen} />
+        <Tab.Screen name="Favourites" component={PlaylistScreen} />
         <Tab.Screen name="Settings" component={SettingsScreen} />
       </Tab.Navigator>
     </NavigationContainer>
