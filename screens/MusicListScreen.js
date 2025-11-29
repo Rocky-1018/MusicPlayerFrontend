@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#121212',
     paddingHorizontal: 10,
     paddingTop: 10,
-    paddingBottom: 80, // space for now playing bar
+    paddingBottom: 80, 
   },
   headerRow: {
     flexDirection: 'row',
