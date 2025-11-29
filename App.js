@@ -8,10 +8,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PlaybackProvider } from './contexts/PlaybackContext';
-import { MouseGestureProvider } from './contexts/MouseGestureContext'; // ✅ NEW IMPORT
+import { MouseGestureProvider } from './contexts/MouseGestureContext';
 
 import LoginScreen from './screens/LoginScreen';
-import SignupScreen from './screens/SignupScreen'; 
+import SignupScreen from './screens/SignupScreen';
 import MusicListScreen from './screens/MusicListScreen';
 import NowPlayingScreen from './screens/NowPlayingScreen';
 import PlaylistScreen from './screens/PlaylistScreen';
@@ -39,11 +39,11 @@ function MusicStack() {
 }
 
 function AppNavigator() {
-  const { userToken } = useAuth();
+  const { userToken, loading } = useAuth();
 
-  if (!userToken) {
-    return <AuthStack />;  
-  }
+  if (loading) return null; // or SplashScreen component
+
+  if (!userToken) return <AuthStack />;
 
   return (
     <Tab.Navigator

@@ -11,6 +11,12 @@ import { API_BASE_URL } from '../api';
 
 const STATIC_BASE_URL = API_BASE_URL;
 
+const swipeConfig = {
+  velocityThreshold: 0.1,
+  directionalOffsetThreshold: 50,
+  gestureIsClickThreshold: 5,
+};
+
 export default function NowPlayingScreen({ route }) {
   const { trackId } = route.params || {};
   const navigation = useNavigation();
@@ -30,7 +36,6 @@ export default function NowPlayingScreen({ route }) {
     toggleLike,
   } = usePlayback();
 
-
   const { onMouseDown, onMouseUp, onMouseLeave } = useMouseGestures();
 
   const [track, setTrack] = useState(null);
@@ -38,7 +43,6 @@ export default function NowPlayingScreen({ route }) {
   const [duration, setDuration] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const isSeekingRef = useRef(false);
-
 
   useEffect(() => {
     if (!trackId) return;
@@ -60,44 +64,32 @@ export default function NowPlayingScreen({ route }) {
     loadTrack();
   }, [trackId]);
 
-
   useEffect(() => {
     if (currentTrack) {
       setTrack(currentTrack);
-     
       setPosition(0);
       setDuration(0);
     }
   }, [currentTrack]);
 
-
   useEffect(() => {
     if (track) setIsLiked(likedMusic.includes(track._id));
   }, [likedMusic, track]);
-
 
   useEffect(() => {
     if (!sound?.current) return;
 
     const onPlaybackStatusUpdate = (status) => {
       if (!status.isLoaded || status.didJustFinish) return;
-      
+
       if (!isSeekingRef.current) {
-        const newPosition = status.positionMillis || 0;
-        const newDuration = status.durationMillis || 0;
-        
-        setPosition(newPosition);
-        setDuration(newDuration);
+        setPosition(status.positionMillis || 0);
+        setDuration(status.durationMillis || 0);
       }
     };
 
     sound.current.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
-
-    return () => {
-      if (sound.current) {
-        sound.current.setOnPlaybackStatusUpdate(null);
-      }
-    };
+    return () => sound.current.setOnPlaybackStatusUpdate(null);
   }, [sound, currentTrack]);
 
   const handleToggleLike = async () => {
@@ -120,11 +112,8 @@ export default function NowPlayingScreen({ route }) {
 
   const onSeekSliderComplete = async (value) => {
     if (sound?.current) {
-      try {
-        await sound.current.setPositionAsync(value);
-      } catch (err) {
-        console.error('Seek error:', err);
-      }
+      try { await sound.current.setPositionAsync(value); } 
+      catch (err) { console.error('Seek error:', err); }
     }
     isSeekingRef.current = false;
   };
@@ -139,26 +128,25 @@ export default function NowPlayingScreen({ route }) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#121212' }}>
-
       <View 
-        style={{ flex: 1 }} 
+        style={{ flex: 1 }}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseLeave}
       >
         <View style={styles.container}>
 
-
+          {/* Back Button */}
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={28} color="#1DB954" />
           </TouchableOpacity>
 
- 
+          {/* Cover Art with Swipe */}
           <GestureRecognizer
             onSwipeLeft={nextTrack}
             onSwipeRight={previousTrack}
-            config={{ velocityThreshold: 0.3, directionalOffsetThreshold: 80 }}
-            style={{ flex: 1 }}
+            config={swipeConfig}
+            style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
           >
             <TouchableOpacity
               activeOpacity={0.8}
@@ -180,15 +168,15 @@ export default function NowPlayingScreen({ route }) {
             </TouchableOpacity>
           </GestureRecognizer>
 
- 
+          {/* Track Info */}
           <View style={styles.trackInfoContainer}>
             <Text style={styles.title} numberOfLines={1}>{track.title}</Text>
             <Text style={styles.artist} numberOfLines={1}>{track.artist || 'Unknown Artist'}</Text>
           </View>
 
+          {/* Seek Slider */}
           <View style={styles.sliderRow}>
             <Text style={styles.timeText}>{formatTime(position)}</Text>
-            
             <Slider
               style={styles.slider}
               minimumValue={0}
@@ -200,30 +188,23 @@ export default function NowPlayingScreen({ route }) {
               onValueChange={onSeekSliderValueChange}
               onSlidingComplete={onSeekSliderComplete}
             />
-            
             <Text style={styles.timeText}>{formatTime(duration)}</Text>
           </View>
 
-          {/* Controls */}
+          {/* Playback Controls */}
           <View style={styles.controlsRow}>
             <TouchableOpacity onPress={previousTrack}>
               <Ionicons name="play-skip-back" size={36} color="#1DB954" />
             </TouchableOpacity>
-            
             <TouchableOpacity onPress={isPlaying ? pauseTrack : resumeTrack} style={styles.playPauseButton}>
-              <Ionicons
-                name={isPlaying ? 'pause-circle' : 'play-circle'}
-                size={70}
-                color="#1DB954"
-              />
+              <Ionicons name={isPlaying ? 'pause-circle' : 'play-circle'} size={70} color="#1DB954" />
             </TouchableOpacity>
-            
             <TouchableOpacity onPress={nextTrack}>
               <Ionicons name="play-skip-forward" size={36} color="#1DB954" />
             </TouchableOpacity>
           </View>
 
-        
+          {/* Volume & Like */}
           <View style={styles.volumeLikeRow}>
             <View style={styles.volumeWrapper}>
               <Text style={styles.volumeLabel}>Volume</Text>
@@ -238,13 +219,8 @@ export default function NowPlayingScreen({ route }) {
                 onValueChange={(value) => setVolume(Math.max(0, Math.min(1, value)))}
               />
             </View>
-
             <TouchableOpacity onPress={handleToggleLike} style={styles.likeButton}>
-              <Ionicons
-                name={isLiked ? 'heart' : 'heart-outline'}
-                size={32}
-                color={isLiked ? '#1DB954' : '#ccc'}
-              />
+              <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={32} color={isLiked ? '#1DB954' : '#ccc'} />
             </TouchableOpacity>
           </View>
 
@@ -267,80 +243,19 @@ const styles = StyleSheet.create({
   backButton: { alignSelf: 'flex-start', marginBottom: 10 },
   coverImage: { ...commonCoverStyle },
   coverPlaceholder: { ...commonCoverStyle },
-  
- 
-  trackInfoContainer: {
-    width: '100%',
-    marginTop: 15,
-    marginBottom: 10,
-    paddingHorizontal: 10,
-  },
+  trackInfoContainer: { width: '100%', marginTop: 15, marginBottom: 10, paddingHorizontal: 10 },
   title: { fontSize: 24, color: '#fff', fontWeight: 'bold', textAlign: 'center' },
   artist: { fontSize: 18, color: '#aaa', textAlign: 'center', marginTop: 4 },
-  
-  sliderRow: { 
-  flexDirection: 'row', 
-  alignItems: 'center', 
-  justifyContent: 'center', 
-  width: '100%', 
-  marginBottom: 20, 
-  paddingHorizontal: 20 
-},
-slider: { 
-  flex: 1, 
-  maxWidth: 300,  
-  minWidth: 250,
-},
-timeText: { 
-  color: '#ccc', 
-  fontSize: 14, 
-  fontWeight: '500',
-  textAlign: 'center',
-  minWidth: 45,    
-  flexShrink: 0,   
-},
-
-  
-  controlsRow: { 
-    flexDirection: 'row', 
-    width: '80%', 
-    justifyContent: 'space-around', 
-    alignItems: 'center', 
-    marginVertical: 15 
-  },
+  sliderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', marginBottom: 20, paddingHorizontal: 20 },
+  slider: { flex: 1, maxWidth: 300, minWidth: 250 },
+  timeText: { color: '#ccc', fontSize: 14, fontWeight: '500', textAlign: 'center', minWidth: 45, flexShrink: 0 },
+  controlsRow: { flexDirection: 'row', width: '80%', justifyContent: 'space-around', alignItems: 'center', marginVertical: 15 },
   playPauseButton: { paddingHorizontal: 15 },
-  
- 
-  volumeLikeRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 10,
-    marginTop: 10,
-  },
-  volumeWrapper: {
-    flex: 1,
-    marginRight: 15,
-  },
-  volumeLabel: { 
-    fontSize: 16, 
-    color: '#ccc', 
-    marginBottom: 6,
-    textAlign: 'left'
-  },
-  volumeSlider: { 
-    width: '100%',
-    height: 40,
-  },
-  
-  likeButton: {
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    minWidth: 50,
-  },
-  
+  volumeLikeRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', width: '100%', paddingHorizontal: 10, marginTop: 10 },
+  volumeWrapper: { flex: 1, marginRight: 15 },
+  volumeLabel: { fontSize: 16, color: '#ccc', marginBottom: 6, textAlign: 'left' },
+  volumeSlider: { width: '100%', height: 40 },
+  likeButton: { padding: 12, justifyContent: 'center', alignItems: 'center', minWidth: 50 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' },
   loading: { color: '#fff', fontSize: 16 },
 });

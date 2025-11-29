@@ -8,6 +8,7 @@ const PlaybackContext = createContext();
 
 export function PlaybackProvider({ children }) {
   const { userToken } = useAuth(); 
+
   const [playlist, setPlaylist] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -15,10 +16,18 @@ export function PlaybackProvider({ children }) {
   const [volume, setVolume] = useState(0.5);
   const [isLoadingSound, setIsLoadingSound] = useState(false);
   const [isLoadingPlaylist, setIsLoadingPlaylist] = useState(false);
-  const [likedMusic, setLikedMusic] = useState([]); 
+  const [likedMusic, setLikedMusic] = useState([]);
 
   const sound = useRef(new Audio.Sound());
- const unloadSoundSafely = useCallback(async () => {
+  const currentIndexRef = useRef(currentIndex);
+
+  // Keep ref and state in sync
+  const updateCurrentIndex = (index) => {
+    setCurrentIndex(index);
+    currentIndexRef.current = index;
+  };
+
+  const unloadSoundSafely = useCallback(async () => {
     try {
       const status = await sound.current.getStatusAsync();
       if (status.isLoaded) {
@@ -46,7 +55,6 @@ export function PlaybackProvider({ children }) {
     const clamped = Math.max(0, Math.min(1, newVolume));
     setVolume(clamped);
   }, []);
-
 
   const refreshPlaylist = async () => {
     if (isLoadingPlaylist) return;
@@ -81,7 +89,6 @@ export function PlaybackProvider({ children }) {
     const isCurrentlyLiked = likedMusic.includes(trackId);
     const newLikeStatus = !isCurrentlyLiked;
 
-
     setLikedMusic(prev =>
       newLikeStatus ? [...prev, trackId] : prev.filter(id => id !== trackId)
     );
@@ -98,7 +105,6 @@ export function PlaybackProvider({ children }) {
       }
     } catch (err) {
       console.error('Failed to toggle like', err);
- 
       setLikedMusic(prev =>
         isCurrentlyLiked ? [...prev, trackId] : prev.filter(id => id !== trackId)
       );
@@ -123,13 +129,17 @@ export function PlaybackProvider({ children }) {
 
       setIsPlaying(true);
       setCurrentTrack(track);
-      setCurrentIndex(index);
+      updateCurrentIndex(index);
       setPlaylist(tracks);
 
       sound.current.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded) {
-          setIsPlaying(status.isPlaying);
-          if (status.didJustFinish) nextTrack();
+        if (!status.isLoaded) return;
+
+        setIsPlaying(status.isPlaying);
+
+        if (status.didJustFinish && tracks.length) {
+          const nextIndex = (currentIndexRef.current + 1) % tracks.length;
+          playTrackAtIndex(nextIndex, tracks);
         }
       });
     } catch (e) {
@@ -150,14 +160,15 @@ export function PlaybackProvider({ children }) {
 
   const nextTrack = () => {
     if (!playlist.length) return;
-    if (currentIndex + 1 < playlist.length) playTrackAtIndex(currentIndex + 1, playlist);
+    const nextIndex = (currentIndex + 1) % playlist.length;
+    playTrackAtIndex(nextIndex, playlist);
   };
 
   const previousTrack = () => {
     if (!playlist.length) return;
-    if (currentIndex - 1 >= 0) playTrackAtIndex(currentIndex - 1, playlist);
+    const prevIndex = (currentIndex - 1 + playlist.length) % playlist.length;
+    playTrackAtIndex(prevIndex, playlist);
   };
-
 
   useEffect(() => { refreshPlaylist(); }, [userToken]);
   useEffect(() => { fetchLikedMusic(); }, [userToken]);
@@ -171,7 +182,6 @@ export function PlaybackProvider({ children }) {
     };
     setVolumeEffect();
   }, [volume]);
-
 
   useEffect(() => {
     if (!userToken && sound.current) {
@@ -200,9 +210,9 @@ export function PlaybackProvider({ children }) {
         sound,
         isLoadingPlaylist,
         isLoadingSound,
-        likedMusic,     
-        toggleLike,     
-        fetchLikedMusic, 
+        likedMusic,
+        toggleLike,
+        fetchLikedMusic,
       }}
     >
       {children}

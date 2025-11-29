@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useEffect, useReducer } from 'react';
+import React, { createContext, useContext, useEffect, useReducer, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../api';
 
 const initialState = { userToken: null, user: null };
-
 const AuthContext = createContext();
 
 function reducer(state, action) {
@@ -18,11 +18,21 @@ function reducer(state, action) {
 
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [loading, setLoading] = useState(true); // Splash/loading state
 
   useEffect(() => {
     (async () => {
       const token = await AsyncStorage.getItem('userToken');
-      if (token) dispatch({ type: 'LOGIN', token, user: null });
+      if (token) {
+        try {
+          // Verify token by calling backend
+          await api.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+          dispatch({ type: 'LOGIN', token, user: null });
+        } catch {
+          await AsyncStorage.removeItem('userToken');
+        }
+      }
+      setLoading(false);
     })();
   }, []);
 
@@ -37,7 +47,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ ...state, login, logout }}>
+    <AuthContext.Provider value={{ ...state, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
